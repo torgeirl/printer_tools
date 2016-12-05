@@ -1,5 +1,7 @@
-from sys import argv
+from sys import argv, exit
 from netsnmp import Varbind, VarList, snmpget, snmpgetnext
+
+usage = 'Usage: %s <printer>...' % argv[0]
 
 def get_by_oid(printer_name, oid):
     '''Returns the value of a given Object Identifier (OID) for a printer'''
@@ -46,5 +48,8 @@ def get_printer_info(printer_name):
     return info
 
 if __name__ == '__main__':
-    
-    print get_printer_info(argv[1].lower())
+    if len(argv) > 1:
+        for arg in argv[1:]:  
+            print get_printer_info(arg.lower())
+    else:
+        print usage; exit(1)

@@ -9,7 +9,8 @@ Python scripts made to help you monitor printers on a network.
 * [Python bindings of Net-SNMP](https://net-snmp.svn.sourceforge.net/svnroot/net-snmp/trunk/net-snmp/python/README) are available on that server.
 
 ## Usage
-`$ python printer_stats.py [-s startdate -e enddate] [-a new_printer]...`
+`$ python printer_stats.py [-s startdate -e enddate] [-a new_printer]`
+`$ python printer_status.py <printer>...`
 
 ## Documentation
 
