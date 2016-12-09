@@ -8,7 +8,12 @@ def get_by_oid(printer_name, oid):
     return snmpgetnext(Varbind(oid), DestHost = printer_name, Community = 'public', Version = 1)
 
 def get_printer_info(printer_name):
-    #TODO: use VarList(Varbind<>...) to bulk all SNMP queries for performance boost
+    # TODO: use VarList(Varbind<>...) to bulk all SNMP queries for performance boost
+    #
+    # ... but it's not yet supported: "Note that only one varbind should be contained 
+    # in the VarList passed in. The code is structured to maybe handle this is the the 
+    # future, but right now walking multiple trees at once is not yet supported and 
+    # will produce insufficient results."
 
     model = get_by_oid(printer_name, '.1.3.6.1.2.1.25.3.2.1.3')
     lines = get_by_oid(printer_name, '.1.3.6.1.2.1.43.5.1.1.11') # TODO: not in use??!

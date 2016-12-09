@@ -78,7 +78,7 @@ def check_printers(debug=False):
         data = json.load(infile)
     for printer in data.keys():
         if debug:
-            status = 'Querying %s ...' % printer
+            status = 'Querying %s ...' % printer.split('.')[0]
             print status,
         start_time = time.time()
         page_count = get_page_count(printer)
@@ -107,7 +107,7 @@ def make_report(start_date, end_date):
         else:
             increase = 'n/a'
         location = int(data[printer].get('location'))
-        report += '%12s | %5i | %7s | +%s\n' % (printer[:12], location, end, increase)
+        report += '%12s | %5i | %7s | +%s\n' % (printer.split('.')[0], location, end, increase)
     report += '\n%i printers, total increase in period: %i pages\n' % (len(data), total)
     return report
 
