@@ -1,12 +1,13 @@
 from netsnmp import Varbind, VarList, snmpget
-from os import environ
+from os import environ, path
 from subprocess import CalledProcessError, check_output, STDOUT
 from sys import argv, exit
 
 usage = 'Usage: %s <printer>...' % argv[0]
 
 # Provide the paths to needed MIBs with a comma (!) separeted list
-mibs_to_load = '../mibs/Printer-MIB.my:../mibs/SNMPv2-MIB.txt'
+mibs_dir = path.abspath(path.join(path.dirname( __file__ ), '..', 'mibs'))
+mibs_to_load = mibs_dir + '/Printer-MIB.my:' + mibs_dir + '/SNMPv2-MIB.txt'
 
 def get_by_mib(printer_name, mib):
     '''Returns the value of a given Management Information Base (MIB) for a printer'''
