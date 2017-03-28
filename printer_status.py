@@ -9,6 +9,8 @@ usage = 'Usage: %s <printer>...' % argv[0]
 mibs_dir = path.abspath(path.join(path.dirname( __file__ ), '..', 'mibs'))
 mibs_to_load = mibs_dir + '/Printer-MIB.my:' + mibs_dir + '/SNMPv2-MIB.txt'
 
+printer_address = '.printer.uio.no'
+
 def get_by_mib(printer_name, mib):
     '''Returns the value of a given Management Information Base (MIB) for a printer'''
     return snmpget(Varbind(mib), DestHost = printer_name, Community = 'public', Version = 1)
@@ -71,8 +73,8 @@ if __name__ == '__main__':
         for arg in argv[1:]:
             if ping(arg):
                 print get_printer_info(arg.lower())
-            elif ping(arg + '.printer.uio.no'):
-                print get_printer_info(arg.lower() + '.printer.uio.no')
+            elif ping(arg + printer_address):
+                print get_printer_info(arg.lower() + printer_address)
             else:
                 print '\033[91mError\033[0m: host \'' + arg.lower() + '\' not known'
     else:

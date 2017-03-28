@@ -36,7 +36,7 @@ def get_by_oid(printer_name, oid):
 def get_page_count(printer_name):
     '''Returns a printer's page count'''
     page_count = get_by_oid(printer_name, '.1.3.6.1.2.1.43.10.2.1.4')[0]
-    if not page_count is None:
+    if not page_count is None and not page_count is '0':
         return page_count
     else:
         return 'n/a'

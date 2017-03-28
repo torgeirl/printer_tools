@@ -2,7 +2,7 @@ Printer Tools
 =============
 
 ## Overview
-Python scripts made to help you monitor printers on a network.
+Python scripts that helps you monitor printers on a network.
 
 ## Assumptions
 * You're running the scripts on a server with access to the printer network.
@@ -10,11 +10,14 @@ Python scripts made to help you monitor printers on a network.
 
 ## Usage
 `$ python printer_stats.py [-s startdate -e enddate] [-a new_printer]`
+
 `$ python printer_status.py <printer>...`
 
 ## Documentation
 
 ### printer_stats
+The code assumes the address of each printer is its name. If a full address is used (ie. `name.printer.example.com`) only the `name` part is displayed.
+
 `get\_page\_count()` asks a printer for its page count using the `get\_by\_oid()` function and returns that number, or `n/a` if not found.
 
 `add\_printer()` and `remove\_printer()` handles adding and removing a printer from the JSON file.
@@ -24,10 +27,16 @@ Python scripts made to help you monitor printers on a network.
 `make_report()` returns a report on page count increase for the given period.
 
 ### printer_status
+Rewritten to handle Ricoh printers, the code has lost some of its flexibility and some more hacky solutions had to be included. It now use Management Information Base (MIBs), and assumes your provide the code a path to each MIB.
 
+The main function loops over each printer given as a parameter and, if they answer ping, their infomation is printed.
+
+`ping()` silently pings the host once. Returns true if host answers; false if it doesn't.
+
+`get_printer_info()` asks a printer for its info using the `get_by_mib()` function and returns that info as a formatted string.
 
 ## Setting up CRON job
-`$ export VISUAL=vim; crontab -e` opens the list of CRON jobs the user have on the server in the VIM editor:
+`$ export VISUAL=vim; crontab -e` opens the list of CRON jobs the user have on the server in the VIM editor. The following will create a CRON job that runs 23:45 each day:
 
     TERM=xterm
     45 23 * * * python printer_stats.py 2>&1 | mail -s "Subject" "mail@example.com"
