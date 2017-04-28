@@ -9,6 +9,9 @@ usage = 'Usage: %s <printer>...' % argv[0]
 mibs_dir = path.abspath(path.join(path.dirname( __file__ ), '..', 'mibs'))
 mibs_to_load = mibs_dir + '/Printer-MIB.my:' + mibs_dir + '/SNMPv2-MIB.txt'
 
+# Loading MIBs with environ is a bit hacky, but worked. TODO: configure netsnmp properly
+environ['MIBS'] = mibs_to_load
+
 printer_address = '.printer.uio.no'
 
 def get_by_mib(printer_name, mib):
@@ -25,10 +28,6 @@ def ping(host):
 
 def get_printer_info(printer_name):
     '''Queries a printer and returns its info ready to print.'''
-    # Loading MIBs with environ is a bit hacky, but worked.
-    # TODO: configure netsnmp properly
-    environ['MIBS'] = mibs_to_load
-
     # TODO: use VarList(Varbind<>...) to bulk all SNMP queries for performance boost
     #
     # ... but it's not yet supported: "Note that only one varbind should be contained 

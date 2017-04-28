@@ -1,8 +1,8 @@
 from datetime import date, timedelta
 import json
+from netsnmp import snmpgetnext, Varbind
 from optparse import OptionParser
 from os.path import dirname, join
-from netsnmp import snmpgetnext, Varbind
 from sys import argv, exit
 import time
 
