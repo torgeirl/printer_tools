@@ -23,7 +23,7 @@ Made by Torgeir Lebesbye (torgeirl) during the fall of 2016. MIT License.
 '''
 
 usage = 'Usage: %s [-s startdate -e enddate] [-a new_printer]...' % argv[0]
-json_file = 'data.json'
+json_file = 'page_count.json'
 
 def map_path(target_name):
     '''Enables path names to be dynamically ascertained at runtime.'''

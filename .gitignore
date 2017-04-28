@@ -1,4 +1,5 @@
-data.json
+page_count.json
+snmpwalk_grep_all.sh
 
 # Compiled Python bytecode
 *.pyc

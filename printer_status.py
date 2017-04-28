@@ -5,7 +5,7 @@ from sys import argv, exit
 
 usage = 'Usage: %s <printer>...' % argv[0]
 
-# Provide the paths to needed MIBs with a comma (!) separeted list
+# Provide the paths to needed MIBs with a colon (!) separeted list
 mibs_dir = path.abspath(path.join(path.dirname( __file__ ), '..', 'mibs'))
 mibs_to_load = mibs_dir + '/Printer-MIB.my:' + mibs_dir + '/SNMPv2-MIB.txt'
 
