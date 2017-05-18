@@ -51,7 +51,11 @@ class ScriptException(Exception):
 def get_error_list(printer):
     '''Returns all errors and warnings from the printer as a list.'''
     script = 'snmpwalk -v 2c -c public -M %s/ -m all %s | grep -E Printer-MIB::prtAlertSeverityLevel.' % (mibs_dir, printer)
-    return filter(None, run_script(script))
+    errors = list(filter(None, run_script(script)))
+    if errors > 0:
+        errors.append(filter(None, errors.pop(0).split('\n')))
+        errors.insert(0, printer.split('.')[0])
+    return errors
 
 def get_by_mib(printer_name, mib):
     '''Returns the value of a given Management Information Base (MIB) for a printer'''
@@ -59,14 +63,14 @@ def get_by_mib(printer_name, mib):
 
 def parse_errors(errors):
     parsed_errors = ''
-    for line in error_log.split('\n'):
-        printer = line.split()[0].strip('[]')
-        err_id = re.findall(r'\.(\d+\.\d+)', line)[0]
+    printer = errors[0]
+    for error in errors[1]:
+        err_id = re.findall(r'\.(\d+\.\d+)', error)[0]
         err_desc = get_by_mib(printer + '.printer.uio.no', 'prtAlertDescription.' + err_id)[0].split(' {')[0]
         err_ticks = int(get_by_mib(printer + '.printer.uio.no', 'prtAlertTime.' + err_id)[0])
         system_uptime_ticks = int(get_by_mib(printer + '.printer.uio.no', 'sysUpTimeInstance')[0])
         err_time = str(timedelta(seconds=(system_uptime_ticks - err_ticks)/100)) #error time appears relative to system uptime
-        message = '[%s] critical error: \'%s\' in %s\n' % (printer, err_desc, err_time)
+        message = '[%s] \'%s\' in %s\n' % (printer, err_desc, err_time)
         parsed_errors += message
     return parsed_errors
 
@@ -80,14 +84,15 @@ if __name__ == '__main__':
 #    try:
     start_time = time.time()
     error_list = []
+    parsed_errors = ''
     for arg in argv[1:]:
-        error_list.append(get_error_list(arg))    
+        errors = get_error_list(arg)
+        if errors > 0:
+            error_list.append(errors)    
     if len(error_list) > 0:
-        print str(error_list)
         for item in error_list:
-            print item
-        #parsed_errors = parse_errors(error_log)
-        #print parsed_errors,
+            parsed_errors += parse_errors(item)
+        print parsed_errors, #TODO remove comma?
         end_time = time.time()
         print 'CRITICAL ERRORS OR WARNINGS DETECTED (%.1f sec)' % (end_time - start_time)
     else:
