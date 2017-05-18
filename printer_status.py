@@ -18,10 +18,10 @@ def get_by_mib(printer_name, mib):
     '''Returns the value of a given Management Information Base (MIB) for a printer'''
     return snmpget(Varbind(mib), DestHost = printer_name, Community = 'public', Version = 1)
 
-def ping(host):
+def ping(host, times=1):
     '''Silently pings the host once. Returns true if host answers; false if it doesn't.'''
     try:
-        check_output(['ping', '-c', '1', host], stderr=STDOUT, universal_newlines=True)
+        check_output(['ping', '-c', str(times), host], stderr=STDOUT, universal_newlines=True)
     except CalledProcessError:
         return False
     return True
