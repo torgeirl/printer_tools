@@ -13,6 +13,8 @@ mibs_dir = path.abspath(path.join(path.dirname( __file__ ), '..', 'mibs'))
 mibs_to_load = mibs_dir + '/Printer-MIB.my:' + mibs_dir + '/DISMAN-EVENT-MIB.txt' #colon-separated (!) list
 environ['MIBS'] = mibs_to_load
 
+ignore_list = 'low:|lite:|no paper|tomt for papir|low power mode|energy saver mode|energisparemodus'
+
 def run_script(script, stdin=None):
     '''Returns (stdout, stderr); raises error on non-zero return code'''
     proc = Popen(['bash', '-c', script], stdout=PIPE, stderr=PIPE, stdin=PIPE)
@@ -33,7 +35,7 @@ def get_by_mib(device_address, mib):
 
 def get_error_list(printer_address):
     '''Returns all errors from the printer as a list.'''
-    script = 'snmpwalk -v 2c -c public -M %s/ -m all %s | grep -E Printer-MIB::prtAlertSeverityLevel.+critical' % (mibs_dir, printer_address)
+    script = 'snmpwalk -v 2c -c public -M %s/ -m all %s | grep -E Printer-MIB::prtAlertSeverityLevel.' % (mibs_dir, printer_address)
     try:
         script_result = run_script(script)
     except ScriptException as e:
@@ -42,7 +44,8 @@ def get_error_list(printer_address):
         elif 'snmpwalk: Unknown host' in e.stderr:
             return '[%s] host \'%s\' unknown or offline' % (printer_address.split('.')[0], printer_address)
         else:
-            return '[%s] unexpected error: %s' % (printer_address.split('.')[0], e.stderr)
+            return '[%s] unexpected error: \'%s\'' % (printer_address.split('.')[0], e.stderr)
+
     errors = list(filter(None, run_script(script)))
     if errors:
         errors.append(filter(None, errors.pop(0).split('\n')))
@@ -55,11 +58,11 @@ def parse_errors(errors):
     for error in errors[1]:
         err_id = findall(r'\.(\d+\.\d+)', error)[0]
         err_desc = get_by_mib(printer_address, 'prtAlertDescription.' + err_id)[0].split(' {')[0]
-        err_ticks = int(get_by_mib(printer_address, 'prtAlertTime.' + err_id)[0])
-        system_uptime_ticks = int(get_by_mib(printer_address, 'sysUpTimeInstance')[0])
-        err_time = str(timedelta(seconds=(system_uptime_ticks - err_ticks)/100)) #error time appears relative to system uptime
-        message = '[%s] \'%s\' in %s\n' % (printer_address.split('.')[0], err_desc, err_time)
-        if not search('no paper|tomt for papir', message.lower()): 
+        if not search(ignore_list, err_desc.lower()):
+            err_ticks = int(get_by_mib(printer_address, 'prtAlertTime.' + err_id)[0])
+            system_uptime_ticks = int(get_by_mib(printer_address, 'sysUpTimeInstance')[0])
+            err_time = str(timedelta(seconds=(system_uptime_ticks - err_ticks)/100)) #error time appears relative to system uptime
+            message = '[%s] \'%s\' in %s\n' % (printer_address.split('.')[0], err_desc, err_time)
             parsed_errors += message
     return parsed_errors
 
