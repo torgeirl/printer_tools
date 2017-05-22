@@ -2,7 +2,7 @@ from datetime import timedelta
 from netsnmp import Varbind, VarList, snmpget
 from optparse import OptionParser
 from os import environ, path
-from re import findall
+from re import findall, search
 from subprocess import PIPE, Popen
 from sys import argv, exit
 import time
@@ -59,7 +59,8 @@ def parse_errors(errors):
         system_uptime_ticks = int(get_by_mib(printer_address, 'sysUpTimeInstance')[0])
         err_time = str(timedelta(seconds=(system_uptime_ticks - err_ticks)/100)) #error time appears relative to system uptime
         message = '[%s] \'%s\' in %s\n' % (printer_address.split('.')[0], err_desc, err_time)
-        parsed_errors += message
+        if not search('no paper|tomt for papir', message.lower()): 
+            parsed_errors += message
     return parsed_errors
 
 if __name__ == '__main__':
