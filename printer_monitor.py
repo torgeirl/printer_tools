@@ -1,6 +1,5 @@
 from datetime import timedelta
-from netsnmp import Varbind, VarList, snmpget
-from optparse import OptionParser
+from netsnmp import snmpget, Varbind
 from os import environ, path
 from re import findall, search
 from subprocess import PIPE, Popen
@@ -35,7 +34,7 @@ def get_by_mib(device_address, mib):
 
 def get_error_list(printer_address):
     '''Returns all errors from a printer'''
-    script = 'snmpwalk -v 2c -c public -M %s/ -m all %s | grep -E Printer-MIB::prtAlertSeverityLevel.' % (mibs_dir, printer_address)
+    script = 'snmpwalk -v 2c -c public -M %s/ -m all %s | grep -E Printer-MIB::prtAlertDescription.' % (mibs_dir, printer_address)
     try:
         script_result = run_script(script)
     except ScriptException as e:
@@ -52,13 +51,15 @@ def parse_errors(printer_address, error_list, ignore_list):
     parsed_errors = ''
     for error in error_list:
         err_id = findall(r'\.(\d+\.\d+)', error)[0]
-        err_desc = get_by_mib(printer_address, 'prtAlertDescription.' + err_id)[0].split(' {')[0]
+        try:
+            err_desc = findall(r'"(.*?)\s\{', error)[0]
+        except IndexError:
+            err_desc = get_by_mib(printer_address, 'prtAlertDescription.' + err_id)[0].split(' {')[0]
         if not search(ignore_list, err_desc.lower()):
             err_ticks = int(get_by_mib(printer_address, 'prtAlertTime.' + err_id)[0])
             system_uptime_ticks = int(get_by_mib(printer_address, 'sysUpTimeInstance')[0])
             err_time = str(timedelta(seconds=(system_uptime_ticks - err_ticks)/100)) #error time appears relative to system uptime
-            message = '[%s] \'%s\' in %s\n' % (printer_address.split('.')[0], err_desc, err_time)
-            parsed_errors += message
+            parsed_errors += '[%s] \'%s\' in %s\n' % (printer_address.split('.')[0], err_desc, err_time)
     return parsed_errors
 
 if __name__ == '__main__':
@@ -69,12 +70,9 @@ if __name__ == '__main__':
             errors = get_error_list(arg)
             if errors:
                 parsed_errors += errors
+        end_time = time.time()
         if len(parsed_errors) > 0:
             print parsed_errors
-            end_time = time.time()
-            print '\nCRITICAL ERROR(S) DETECTED (%.1f sec)' % (end_time - start_time)
-#        else:
-#            end_time = time.time()
-#            print 'OK (%.1f sec)' % (end_time - start_time)
+            print '\nDONE: %i printers checked in %.1f seconds' % (len(argv)-1, end_time - start_time)
     else:
         print usage; exit(1)
