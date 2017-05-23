@@ -13,7 +13,7 @@ mibs_dir = path.abspath(path.join(path.dirname( __file__ ), '..', 'mibs'))
 mibs_to_load = mibs_dir + '/Printer-MIB.my:' + mibs_dir + '/DISMAN-EVENT-MIB.txt' #colon-separated (!) list
 environ['MIBS'] = mibs_to_load
 
-ignore_list = 'low:|lite:|no paper|tomt for papir|low power mode|energy saver mode|energisparemodus'
+ignore_list = 'low:|lite:|no paper|tomt for papir|low power mode|energy saver mode|energisparemodus|modus for lavt str|warming up|warmer opp'
 
 def run_script(script, stdin=None):
     '''Returns (stdout, stderr); raises error on non-zero return code'''
@@ -34,7 +34,7 @@ def get_by_mib(device_address, mib):
     return snmpget(Varbind(mib), DestHost = device_address, Community = 'public', Version = 1)
 
 def get_error_list(printer_address):
-    '''Returns all errors from the printer as a list.'''
+    '''Returns all errors from a printer'''
     script = 'snmpwalk -v 2c -c public -M %s/ -m all %s | grep -E Printer-MIB::prtAlertSeverityLevel.' % (mibs_dir, printer_address)
     try:
         script_result = run_script(script)
@@ -45,17 +45,12 @@ def get_error_list(printer_address):
             return '[%s] host \'%s\' unknown or offline' % (printer_address.split('.')[0], printer_address)
         else:
             return '[%s] unexpected error: \'%s\'' % (printer_address.split('.')[0], e.stderr)
+    return parse_errors(printer_address, list(filter(None, run_script(script)[0].split('\n'))), ignore_list)
 
-    errors = list(filter(None, run_script(script)))
-    if errors:
-        errors.append(filter(None, errors.pop(0).split('\n')))
-        errors.insert(0, printer_address)
-    return parse_errors(errors)
-
-def parse_errors(errors):
+def parse_errors(printer_address, error_list, ignore_list):
+    '''Generates a ready-to-print string of a printer's errors'''
     parsed_errors = ''
-    printer_address = errors[0]
-    for error in errors[1]:
+    for error in error_list:
         err_id = findall(r'\.(\d+\.\d+)', error)[0]
         err_desc = get_by_mib(printer_address, 'prtAlertDescription.' + err_id)[0].split(' {')[0]
         if not search(ignore_list, err_desc.lower()):
