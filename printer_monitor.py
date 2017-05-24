@@ -37,13 +37,13 @@ def get_error_list(printer_address):
     script = 'snmpwalk -v 2c -c public -M %s/ -m all %s | grep -E Printer-MIB::prtAlertDescription.' % (mibs_dir, printer_address)
     try:
         script_result = run_script(script)
-    except ScriptException as e:
-        if len(e.stderr) is 0:
-            return None
-        elif 'snmpwalk: Unknown host' in e.stderr:
+    except ScriptException as exception:
+        if len(exception.stderr) is 0:
+            return ''
+        elif 'snmpwalk: Unknown host' in exception.stderr:
             return '[%s] host \'%s\' unknown or offline' % (printer_address.split('.')[0], printer_address)
         else:
-            return '[%s] unexpected error: \'%s\'' % (printer_address.split('.')[0], e.stderr)
+            return '[%s] unexpected error: \'%s\'' % (printer_address.split('.')[0], exception.stderr)
     return parse_errors(printer_address, list(filter(None, run_script(script)[0].split('\n'))), ignore_list)
 
 def parse_errors(printer_address, error_list, ignore_list):
@@ -62,17 +62,24 @@ def parse_errors(printer_address, error_list, ignore_list):
             parsed_errors += '[%s] \'%s\' in %s\n' % (printer_address.split('.')[0], err_desc, err_time)
     return parsed_errors
 
+# TODO using run_script() is quite costly (1-2sec per printer). There's a 
+# way to get the first prtAlertDescription from a printer:
+# 
+# get_next_by_mib(printer_address, 'prtAlertDescription.1')
+# 
+# I have yet to understand how to get that error's error number so I can 
+# move futher down. The error number is also needed to fetch more information 
+# about a spesific error (ie error time)
+
 if __name__ == '__main__':
     if len(argv) > 1:
         start_time = time.time()
-        parsed_errors = ''
+        errors = ''
         for arg in argv[1:]:
-            errors = get_error_list(arg)
-            if errors:
-                parsed_errors += errors
+            errors += get_error_list(arg)
         end_time = time.time()
-        if len(parsed_errors) > 0:
-            print parsed_errors
+        if len(errors) > 0:
+            print errors
             print '\nDONE: %i printers checked in %.1f seconds' % (len(argv)-1, end_time - start_time)
     else:
         print usage; exit(1)
