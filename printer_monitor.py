@@ -1,8 +1,8 @@
 from datetime import timedelta
-from netsnmp import snmpget, Varbind
+from netsnmp import snmpget, snmpwalk, Varbind
 from os import environ, path
-from re import findall, search
-from subprocess import PIPE, Popen
+from re import search
+from subprocess import CalledProcessError, check_output, STDOUT
 from sys import argv, exit
 import time
 
@@ -12,74 +12,52 @@ mibs_dir = path.abspath(path.join(path.dirname( __file__ ), '..', 'mibs'))
 mibs_to_load = mibs_dir + '/Printer-MIB.my:' + mibs_dir + '/DISMAN-EVENT-MIB.txt' #colon-separated (!) list
 environ['MIBS'] = mibs_to_load
 
-ignore_list = 'low:|lite:|no paper|tomt for papir|low power mode|energy saver mode|energisparemodus|modus for lavt str|warming up|warmer opp'
+ignore_list = 'low:|lite:|no paper|tomt for papir|low power mode|energy saver mode|energisparemodus|modus for lavt str|warming up|warmer opp|nearly full'
 
-def run_script(script, stdin=None):
-    '''Returns (stdout, stderr); raises error on non-zero return code'''
-    proc = Popen(['bash', '-c', script], stdout=PIPE, stderr=PIPE, stdin=PIPE)
-    stdout, stderr = proc.communicate()
-    if proc.returncode:
-        raise ScriptException(proc.returncode, stdout, stderr)
-    return stdout, stderr
+def ping(host, times=1):
+    '''Silently pings the host once. Returns true if host answers; false if it doesn't.'''
+    try:
+        check_output(['ping', '-c', str(times), host], stderr=STDOUT, universal_newlines=True)
+    except CalledProcessError:
+        return False
+    return True
 
-class ScriptException(Exception):
-    def __init__(self, returncode, stdout, stderr):
-        self.returncode = returncode
-        self.stdout = stdout
-        self.stderr = stderr
+def walk_mib(device_address, mib):
+    '''Returns the value of all children of the given Management Information Base (MIB) for a network device'''
+    return snmpwalk(Varbind(mib), DestHost = device_address, Community = 'public', Version = 1)
 
-def get_by_mib(device_address, mib):
-    '''Returns the value of a given Management Information Base (MIB) for a network device'''
+def get_mib(device_address, mib):
+    '''Returns the value of the given Management Information Base (MIB) for a network device'''
     return snmpget(Varbind(mib), DestHost = device_address, Community = 'public', Version = 1)
 
-def get_error_list(printer_address):
+def get_printer_errors(printer_address, ignore_list):
     '''Returns all errors from a printer'''
-    script = 'snmpwalk -v 2c -c public -M %s/ -m all %s | grep -E Printer-MIB::prtAlertDescription.' % (mibs_dir, printer_address)
-    try:
-        script_result = run_script(script)
-    except ScriptException as exception:
-        if len(exception.stderr) is 0:
-            return ''
-        elif 'snmpwalk: Unknown host' in exception.stderr:
-            return '[%s] host \'%s\' unknown or offline' % (printer_address.split('.')[0], printer_address)
+    if ping(printer_address):
+        err_descriptions = list(walk_mib(printer_address, 'prtAlertDescription.1'))
+        err_ticks = list(walk_mib(printer_address, 'prtAlertTime.1'))
+        if err_descriptions:
+            parsed_errors = ''
+            system_uptime_ticks = int(get_mib(printer_address, 'sysUpTimeInstance')[0])
+            for index, description in enumerate(err_descriptions):
+                err_desc = description.split('{')[0] 
+                if not search(ignore_list, err_desc.lower()):
+                    err_time = str(timedelta(seconds=(system_uptime_ticks - int(err_ticks[index]))/100))
+                    parsed_errors += '[%s] %s in %s\n' % (printer_address.split('.')[0], err_desc, err_time)
+            return parsed_errors
         else:
-            return '[%s] unexpected error: \'%s\'' % (printer_address.split('.')[0], exception.stderr)
-    return parse_errors(printer_address, list(filter(None, run_script(script)[0].split('\n'))), ignore_list)
-
-def parse_errors(printer_address, error_list, ignore_list):
-    '''Generates a ready-to-print string of a printer's errors'''
-    parsed_errors = ''
-    for error in error_list:
-        err_id = findall(r'\.(\d+\.\d+)', error)[0]
-        try:
-            err_desc = findall(r'"(.*?)\s\{', error)[0]
-        except IndexError:
-            err_desc = get_by_mib(printer_address, 'prtAlertDescription.' + err_id)[0].split(' {')[0]
-        if not search(ignore_list, err_desc.lower()):
-            err_ticks = int(get_by_mib(printer_address, 'prtAlertTime.' + err_id)[0])
-            system_uptime_ticks = int(get_by_mib(printer_address, 'sysUpTimeInstance')[0])
-            err_time = str(timedelta(seconds=(system_uptime_ticks - err_ticks)/100)) #error time appears relative to system uptime
-            parsed_errors += '[%s] \'%s\' in %s\n' % (printer_address.split('.')[0], err_desc, err_time)
-    return parsed_errors
-
-# TODO using run_script() is quite costly (1-2sec per printer). There's a 
-# way to get the first prtAlertDescription from a printer:
-# 
-# get_next_by_mib(printer_address, 'prtAlertDescription.1')
-# 
-# I have yet to understand how to get that error's error number so I can 
-# move futher down. The error number is also needed to fetch more information 
-# about a spesific error (ie error time)
+            return ''
+    else:
+        return '[%s] host \'%s\' unknown or offline\n' % (printer_address.split('.')[0], printer_address)
 
 if __name__ == '__main__':
     if len(argv) > 1:
         start_time = time.time()
         errors = ''
         for arg in argv[1:]:
-            errors += get_error_list(arg)
+            errors += get_printer_errors(arg, ignore_list)
         end_time = time.time()
         if len(errors) > 0:
             print errors
-            print '\nDONE: %i printers checked in %.1f seconds' % (len(argv)-1, end_time - start_time)
+            print 'DONE: %i printers checked in %.1f seconds' % (len(argv)-1, end_time - start_time)
     else:
         print usage; exit(1)
