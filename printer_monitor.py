@@ -12,7 +12,7 @@ mibs_dir = path.abspath(path.join(path.dirname( __file__ ), '..', 'mibs'))
 mibs_to_load = mibs_dir + '/Printer-MIB.my:' + mibs_dir + '/DISMAN-EVENT-MIB.txt' #colon-separated (!) list
 environ['MIBS'] = mibs_to_load
 
-ignore_list = 'low:|lite:|no paper|tomt for papir|low power mode|energy saver mode|energisparemodus|modus for lavt str|warming up|warmer opp|nearly full'
+ignore_list = 'low:|lite:|no paper|tomt for papir|low power mode|energy saver mode|energisparemodus|modus for lavt str|warming up|varmer opp|nearly full|not detected: tray|not detected: input|mismatch: paper size and Type'
 
 def ping(host, times=1):
     '''Silently pings the host once. Returns true if host answers; false if it doesn't.'''
@@ -32,7 +32,7 @@ def get_mib(device_address, mib):
 
 def get_printer_errors(printer_address, ignore_list):
     '''Returns all errors from a printer'''
-    if ping(printer_address):
+    if ping(printer_address): #TODO: impliment some actual error handling
         err_descriptions = list(walk_mib(printer_address, 'prtAlertDescription.1'))
         err_ticks = list(walk_mib(printer_address, 'prtAlertTime.1'))
         if err_descriptions:
@@ -42,12 +42,12 @@ def get_printer_errors(printer_address, ignore_list):
                 err_desc = description.split('{')[0] 
                 if not search(ignore_list, err_desc.lower()):
                     err_time = str(timedelta(seconds=(system_uptime_ticks - int(err_ticks[index]))/100))
-                    parsed_errors += '[%s] %s in %s\n' % (printer_address.split('.')[0], err_desc, err_time)
+                    parsed_errors += '[%s] %s in %s\n' % (printer_address.split('.')[0].upper(), err_desc, err_time)
             return parsed_errors
         else:
             return ''
     else:
-        return '[%s] host \'%s\' unknown or offline\n' % (printer_address.split('.')[0], printer_address)
+        return '[%s] host \'%s\' unknown or offline\n' % (printer_address.split('.')[0].upper(), printer_address)
 
 if __name__ == '__main__':
     if len(argv) > 1:
