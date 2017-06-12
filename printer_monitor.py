@@ -12,7 +12,7 @@ mibs_dir = path.abspath(path.join(path.dirname( __file__ ), '..', 'mibs'))
 mibs_to_load = mibs_dir + '/Printer-MIB.my:' + mibs_dir + '/DISMAN-EVENT-MIB.txt' #colon-separated (!) list
 environ['MIBS'] = mibs_to_load
 
-ignore_list = 'low:|lite:|no paper|tomt for papir|low power mode|energy saver mode|energisparemodus|modus for lavt str|warming up|varmer opp|nearly full|not detected: tray|not detected: input|mismatch: paper size and Type'
+ignore_list = 'low:|lite:|no paper|tomt for papir|low power mode|energy saver mode|energisparemodus|modus for lavt str|warming up|varmer opp|nearly full|not detected: tray|finner ikke: magasin|not detected: input|mismatch: paper size and type|passer ikke: papirformat og type|current job suspended'
 
 def ping(host, times=1):
     '''Silently pings the host once. Returns true if host answers; false if it doesn't.'''
@@ -57,7 +57,7 @@ if __name__ == '__main__':
             errors += get_printer_errors(arg, ignore_list)
         end_time = time.time()
         if len(errors) > 0:
-            print errors
+            print errors.replace('\xe6', 'ae').replace('\xf8', 'oe').replace('\xe5', 'aa')
             print 'DONE: %i printers checked in %.1f seconds' % (len(argv)-1, end_time - start_time)
     else:
         print usage; exit(1)
