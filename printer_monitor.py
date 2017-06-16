@@ -1,6 +1,6 @@
+from argparse import ArgumentParser, REMAINDER
 from datetime import timedelta
 from netsnmp import snmpget, snmpwalk, Varbind
-from optparse import OptionParser
 from os import environ, path
 from re import search
 from subprocess import CalledProcessError, check_output, STDOUT
@@ -59,20 +59,21 @@ def get_printer_errors(printer_address, ignore_list, all=False):
         return '[%s] host \'%s\' unknown or offline\n' % (printer_address.split('.')[0].upper(), printer_address)
 
 if __name__ == '__main__':
-    parser = OptionParser(usage=usage)
-    parser.add_option('-a', '--all',
+    parser = ArgumentParser(usage=usage)
+    parser.add_argument('-a', '--all',
         default=False,
         help='Display all errors')
-    (options, args) = parser.parse_args()
+    parser.add_argument('args', nargs=REMAINDER)
+    args = parser.parse_args()
 
-    if len(argv) > 1:
+    if len(args.args) > 0:
         start_time = time.time()
         errors = ''
-        for arg in argv[1:]:
-            errors += get_printer_errors(arg, ignore_list, all=options.all)
+        for arg in args.args:
+            errors += get_printer_errors(arg, ignore_list, args.all)
         end_time = time.time()
         if len(errors) > 0:
             print errors.replace('\xe6', 'ae').replace('\xf8', 'oe').replace('\xe5', 'aa')
-            print 'DONE: %i printers checked in %.1f seconds' % (len(argv)-1, end_time - start_time)
+            print 'DONE: %i printers checked in %.1f seconds' % (len(args.args), end_time - start_time)
     else:
         print usage; exit(1)
