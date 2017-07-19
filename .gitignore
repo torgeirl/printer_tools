@@ -1,6 +1,9 @@
 logs/
+matterhook/
 page_count.json
 snmpwalk_grep_all.sh
+webhookconfig.py
 
 # Compiled Python bytecode
 *.pyc
+__pycache__/

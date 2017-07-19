@@ -35,6 +35,9 @@ The main function loops over each printer given as a parameter and, if they answ
 
 `get_printer_info()` asks a printer for its info using the `get_by_mib()` function and returns that info as a formatted string.
 
+### monitoring_webhook.py
+Simple script that sends monitoring updates via incoming webhooks to a Mattermost channel. Depends on [matterhook](https://github.com/numberly/matterhook).
+
 ## Setting up CRON job
 `$ export VISUAL=vim; crontab -e` opens the list of CRON jobs the user have on the server in the VIM editor. The following will create a CRON job that runs 23:45 each day:
 

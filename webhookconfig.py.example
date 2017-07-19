@@ -1,0 +1,6 @@
+webhook_url = 'https://mattermost.MYCOMPANY.com'
+webhook_key = 'qwerty1qwert2qwerty3'
+
+printers = ['test.printer.example.com']
+
+ignore_list = 'energy saver mode|warming up'
