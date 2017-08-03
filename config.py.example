@@ -1,6 +1,9 @@
 webhook_url = 'https://mattermost.MYCOMPANY.com'
 webhook_key = 'qwerty1qwert2qwerty3'
 
+def get_mibs_to_load():
+    return '/home/mibs/Printer-MIB.my #colon-separated (!) list
+
 printers = ['test.printer.example.com']
 
 ignore_list = 'energy saver mode|warming up'

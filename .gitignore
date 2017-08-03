@@ -1,9 +1,10 @@
-logs/
+config.py
 matterhook/
 page_count.json
-snmpwalk_grep_all.sh
-webhookconfig.py
 
 # Compiled Python bytecode
 *.pyc
 __pycache__/
+
+# Swap files (VIM etc)
+*.py.swp

@@ -1,11 +1,13 @@
 from argparse import ArgumentParser, REMAINDER
 from datetime import timedelta
 from netsnmp import snmpget, snmpwalk, Varbind
-from os import environ, path
+from os import environ
 from re import search
 from subprocess import CalledProcessError, check_output, STDOUT
 from sys import argv, exit
 import time
+
+import config as cfg
 
 usage = 'Usage: python %s <printer_address>...' % argv[0]
 
@@ -14,14 +16,12 @@ usage = 'Usage: python %s <printer_address>...' % argv[0]
 Check any number of Ricoh printers for errors. Filter option to ignore selected errors.
 
 Options:
-  -a=TRUE --all=TRUE   Turn off filtering (default FALSE)
+  -a=True --all=True    Turn off filtering (default False)
+  -p=N --pings=N        Adjust number of pings (default 1)
+  -q=True --quiet=True  Ignore unresponsive printers (default False)
 '''
 
-mibs_dir = path.abspath(path.join(path.dirname( __file__ ), '..', 'mibs'))
-mibs_to_load = mibs_dir + '/Printer-MIB.my:' + mibs_dir + '/DISMAN-EVENT-MIB.txt' #colon-separated (!) list
-environ['MIBS'] = mibs_to_load
-
-ignore_list = 'low:|lite:|no paper|tomt for papir|low power mode|energy saver mode|energisparemodus|modus for lavt str|warming up|varmer opp|nearly full|nesten full|not detected: tray|finner ikke: magasin|not detected: input|mismatch: paper size and type|passer ikke: papirformat og type|current job suspended|adjusting|offline|frakoblet'
+environ['MIBS'] = cfg.get_mibs_to_load()
 
 def ping(host, times=1):
     '''Silently pings the host once. Returns true if host answers; false if it doesn't.'''
@@ -39,7 +39,7 @@ def get_mib(device_address, mib):
     '''Returns the value of the given Management Information Base (MIB) for a network device'''
     return snmpget(Varbind(mib), DestHost = device_address, Community = 'public', Version = 1)
 
-def get_printer_errors(printer_address, ignore_list, all=False, pings=1):
+def get_printer_errors(printer_address, ignore_list, all=False, pings=1, quiet=False):
     '''Returns all errors from a printer'''
     if ping(printer_address, pings): #TODO: impliment some actual error handling
         err_descriptions = list(walk_mib(printer_address, 'prtAlertDescription.1'))
@@ -57,7 +57,10 @@ def get_printer_errors(printer_address, ignore_list, all=False, pings=1):
         else:
             return ''
     else:
-        return '%s: host \'%s\' unknown or offline\n' % (printer_address.split('.')[0].upper(), printer_address)
+        if not quiet:
+            return '%s: host \'%s\' unknown or offline\n' % (printer_address.split('.')[0].upper(), printer_address)
+        else:
+            return ''
 
 if __name__ == '__main__':
     parser = ArgumentParser(usage=usage)
@@ -67,6 +70,9 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--pings',
         default=1,
         help='More pings takes more time, but gives less false positives')
+    parser.add_argument('-q', '--quiet',
+        default=False,
+        help='Ignore unresponsive printers (no response to ping)')
     parser.add_argument('args', nargs=REMAINDER)
     args = parser.parse_args()
 
@@ -74,7 +80,7 @@ if __name__ == '__main__':
         start_time = time.time()
         errors = ''
         for arg in args.args:
-            errors += get_printer_errors(arg, ignore_list, args.all, args.pings)
+            errors += get_printer_errors(arg, cfg.ignore_list, args.all, args.pings, args.quiet)
         end_time = time.time()
         if len(errors) > 0:
             print errors.replace('\xe6', 'ae').replace('\xf8', 'oe').replace('\xe5', 'aa')
